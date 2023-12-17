@@ -314,7 +314,7 @@ class ModbusRtuF4N200:
                 list_point.append(self.get_point_influxdb(measurement))
                 
             else:
-                if "sign" not in measurement or "energy" in measurement:
+                if "sign" not in measurement and "energy" not in measurement:
                     logging.warning(f"Measurement {measurement} not supported.")
             
         return list_point
