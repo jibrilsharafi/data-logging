@@ -50,18 +50,26 @@ obj_modbusrtuf4n200 = classes.ModbusRtuF4N200(
 if __name__ == "__main__":
     logging.info("Starting main script...")
     
+    list_point = []
+    
     for zone_code in LIST_CO2SIGNAL_ZONE_CODES:
         point = obj_co2signal.get_point_influxdb(zone_code)
+        list_point.extend(point)
         logging.debug(f"Point: {pformat(point)}")
         
     for location, id in DICT_SHELLY_LOCATION_ID.items():
         point = obj_shelly.get_point_influxdb(id, location)
+        list_point.extend(point)
         logging.debug(f"Point: {pformat(point)}")
     
     point = obj_huawei_pv.get_point_influxdb()
+    list_point.extend(point)
     logging.debug(f"Point: {pformat(point)}")    
     
     point = obj_modbusrtuf4n200.get_all_points_influxdb()
+    list_point.extend(point)
     logging.debug(f"Point: {pformat(point)}")
         
+    logging.info(f"List of all points: {pformat(list_point)}")       
+    
     logging.info("Main script finished")
