@@ -47,7 +47,7 @@ class Co2Signal:
                         'zone_code': zone_code,
                     },
                     'fields': {
-                        'value': data['carbonIntensity'],
+                        'value': float(data['carbonIntensity']),
                     },
                     'time': datetime.datetime.utcnow().isoformat(),
                 },
@@ -57,7 +57,7 @@ class Co2Signal:
                         'zone_code': zone_code,
                     },
                     'fields': {
-                        'value': data['fossilFuelPercentage'],
+                        'value': float(data['fossilFuelPercentage']),
                     },
                     'time': datetime.datetime.utcnow().isoformat(),
                 }
@@ -75,6 +75,8 @@ class ModbusRtuF4N200:
         BAUDRATE = 19200
         PARITY = 'E' # Even
         SLAVE_ADDRESS = 5
+        
+        LOCATION = "Laboratory"
         
         DICT_MODBUS_DATA = {
             "voltage-L1" : {
@@ -140,7 +142,7 @@ class ModbusRtuF4N200:
             "active_power-L1-sign" : {
                 "type": "register",
                 "register_address": 4146,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
@@ -150,7 +152,7 @@ class ModbusRtuF4N200:
             "active_power-L2-sign" : {
                 "type": "register",
                 "register_address": 4147,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
@@ -160,7 +162,7 @@ class ModbusRtuF4N200:
             "active_power-L3-sign" : {
                 "type": "register",
                 "register_address": 4148,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
@@ -200,7 +202,7 @@ class ModbusRtuF4N200:
             "active_energy-positive" : {
                 "type": "long",
                 "register_address": 4688,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": False,
                 "measurement": "active_energy",
                 "tags": {}
@@ -208,7 +210,7 @@ class ModbusRtuF4N200:
             "reactive_energy-positive" : {
                 "type": "long",
                 "register_address": 4690,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": False,
                 "measurement": "reactive_energy",
                 "tags": {}
@@ -216,7 +218,7 @@ class ModbusRtuF4N200:
             "active_energy-negative" : {
                 "type": "long",
                 "register_address": 4692,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": False,
                 "measurement": "active_energy",
                 "tags": {}
@@ -224,7 +226,7 @@ class ModbusRtuF4N200:
             "reactive_energy-negative" : {
                 "type": "long",
                 "register_address": 4694,
-                "scale": 1,
+                "scale": 1.0,
                 "signed": False,
                 "measurement": "reactive_energy",
                 "tags": {}
@@ -238,6 +240,8 @@ class ModbusRtuF4N200:
         self.instrument.serial.parity = PARITY
         
         self.dict_modbus_data = DICT_MODBUS_DATA
+        
+        self.location = LOCATION
         
         return None
     
@@ -256,7 +260,7 @@ class ModbusRtuF4N200:
             logging.error(f"Type {type} not recognized")
             return None
         
-        logging.debug(f"Register {register_address} | Type {type} | Scale {scale} | Signed {signed} | Data {data}")
+        logging.debug(f"Register {register_address} | Type {type} | Scale {scale} | Signed {signed} | Data = {data}")
         return data
     
     def get_point_influxdb(self,
@@ -272,12 +276,15 @@ class ModbusRtuF4N200:
             
         data = self.read_data(type, register_address, scale, signed)
         
-        if data:
+        if data is not None:
             return {
-                'measurement': measurement,
-                'tags': self.dict_modbus_data[measurement]['tags'],
+                'measurement': self.dict_modbus_data[measurement]['measurement'],
+                'tags': {   
+                    'location': self.location,
+                    **self.dict_modbus_data[measurement]['tags']
+                },
                 'fields': {
-                    'value': data
+                    'value': float(data),
                 },
                 'time': datetime.datetime.utcnow().isoformat(),
             }
@@ -289,25 +296,28 @@ class ModbusRtuF4N200:
         
         list_point = []
         for measurement in self.dict_modbus_data.keys():
-            # If it is the active_power, we need to get the sign of the active power and to multiply it by the value
-            if "active_power" in measurement:
+            if "active_power" in measurement and "sign" not in measurement:
                 sign = self.get_point_influxdb(f"{measurement}-sign")
                 value = self.get_point_influxdb(measurement)
                 if sign and value:
                     value['fields']['value'] = value['fields']['value'] * (-2*sign['fields']['value'] + 1)
                     list_point.append(value)
-            # If it is not the energy, we fetch the positive and negative values and we sum them
-            elif measurement == "active_energy" or measurement == "reactive_energy":
-                positive = self.get_point_influxdb(f"{measurement}-positive")
-                negative = self.get_point_influxdb(f"{measurement}-negative")
+                    
+            elif measurement == "active_energy-positive" or measurement == "reactive_energy-positive":
+                positive = self.get_point_influxdb(f"{measurement}")
+                negative = self.get_point_influxdb(f"{measurement.replace('positive', 'negative')}")
                 if positive and negative:
-                    positive['fields']['value'] = positive['fields']['value'] + negative['fields']['value']
+                    positive['fields']['value'] = positive['fields']['value'] - negative['fields']['value']
                     list_point.append(positive)
-            elif "energy" not in measurement or "active_power" not in measurement:
+                    
+            elif "voltage" in measurement or "power_factor" in measurement:
                 list_point.append(self.get_point_influxdb(measurement))
+                
+            else:
+                if "sign" not in measurement or "energy" in measurement:
+                    logging.warning(f"Measurement {measurement} not supported.")
             
         return list_point
-        
         
 class Shelly3Em:
     
@@ -374,7 +384,7 @@ class Shelly3Em:
                             'phase': f"L{phase+1}"
                         },
                         'fields': {
-                            'value': emeter[self._dict_measurement_to_field[measurement]],
+                            'value': float(emeter[self._dict_measurement_to_field[measurement]]),
                         },
                         'time': datetime.datetime.utcnow().isoformat(),
                     })
@@ -414,8 +424,8 @@ class HuaweiPv:
         try:
             stats = self.client.get_power_status()
             return {
-                'current_power': stats.current_power_kw * 1000,
-                'total_energy': stats.energy_kwh * 1000,
+                'current_power': stats.current_power_kw * 1000.0,
+                'total_energy': stats.energy_kwh * 1000.0,
             }
         except Exception as e:
             logging.error(f"API call not working!: {e}")
@@ -432,7 +442,7 @@ class HuaweiPv:
                         'location': self.location,
                     },
                     'fields': {
-                        'value': data['current_power'],
+                        'value': float(data['current_power']),
                     },
                     'time': datetime.datetime.utcnow().isoformat(),
                 },
@@ -442,7 +452,7 @@ class HuaweiPv:
                         'location': self.location,
                     },
                     'fields': {
-                        'value': data['total_energy'],
+                        'value': float(data['total_energy']),
                     },
                     'time': datetime.datetime.utcnow().isoformat(),
                 },
