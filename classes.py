@@ -86,7 +86,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "voltage",
                 "tags": {
-                    "phase": "L1"
+                    "phase": "L1",
+                    "category": "load"
                 }
             },
             "voltage-L2" : {
@@ -96,7 +97,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "voltage",
                 "tags": {
-                    "phase": "L2"
+                    "phase": "L2",
+                    "category": "load"
                 }
             },
             "voltage-L3" : {
@@ -106,7 +108,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "voltage",
                 "tags": {
-                    "phase": "L3"
+                    "phase": "L3",
+                    "category": "load"
                 }
             },
             "active_power-L1" : {
@@ -116,7 +119,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "active_power",
                 "tags": {
-                    "phase": "L1"
+                    "phase": "L1",
+                    "category": "load"
                 }
             },
             "active_power-L2" : {
@@ -126,7 +130,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "active_power",
                 "tags": {
-                    "phase": "L2"
+                    "phase": "L2",
+                    "category": "load"
                 }
             },
             "active_power-L3" : {
@@ -136,7 +141,8 @@ class ModbusRtuF4N200:
                 "signed": False,
                 "measurement": "active_power",
                 "tags": {
-                    "phase": "L3"
+                    "phase": "L3",
+                    "category": "load"
                 }
             },
             "active_power-L1-sign" : {
@@ -146,7 +152,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
-                    "phase": "L1"
+                    "phase": "L1",
+                    "category": "load"
                 }
             },
             "active_power-L2-sign" : {
@@ -156,7 +163,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
-                    "phase": "L2"
+                    "phase": "L2",
+                    "category": "load"
                 }
             },
             "active_power-L3-sign" : {
@@ -166,7 +174,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "sign_active_power",
                 "tags": {
-                    "phase": "L3"
+                    "phase": "L3",
+                    "category": "load"
                 }
             },
             "power_factor-L1" : {
@@ -176,7 +185,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "power_factor",
                 "tags": {
-                    "phase": "L1"
+                    "phase": "L1",
+                    "category": "load"
                 }
             },
             "power_factor-L2" : {
@@ -186,7 +196,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "power_factor",
                 "tags": {
-                    "phase": "L2"
+                    "phase": "L2",
+                    "category": "load"
                 }
             },
             "power_factor-L3" : {
@@ -196,7 +207,8 @@ class ModbusRtuF4N200:
                 "signed": True,
                 "measurement": "power_factor",
                 "tags": {
-                    "phase": "L3"
+                    "phase": "L3",
+                    "category": "load"
                 }
             },
             "active_energy-positive" : {
@@ -205,7 +217,9 @@ class ModbusRtuF4N200:
                 "scale": 1.0,
                 "signed": False,
                 "measurement": "active_energy",
-                "tags": {}
+                "tags": {
+                    "category": "load"
+                }
             },
             "reactive_energy-positive" : {
                 "type": "long",
@@ -213,7 +227,9 @@ class ModbusRtuF4N200:
                 "scale": 1.0,
                 "signed": False,
                 "measurement": "reactive_energy",
-                "tags": {}
+                "tags": {
+                    "category": "load"
+                }
             },
             "active_energy-negative" : {
                 "type": "long",
@@ -221,7 +237,9 @@ class ModbusRtuF4N200:
                 "scale": 1.0,
                 "signed": False,
                 "measurement": "active_energy",
-                "tags": {}
+                "tags": {
+                    "category": "load"
+                }
             },
             "reactive_energy-negative" : {
                 "type": "long",
@@ -229,7 +247,9 @@ class ModbusRtuF4N200:
                 "scale": 1.0,
                 "signed": False,
                 "measurement": "reactive_energy",
-                "tags": {}
+                "tags": {
+                    "category": "load"
+                }
             },
         }
               
@@ -381,7 +401,8 @@ class Shelly3Em:
                         'measurement': measurement,
                         'tags': {
                             'location': location,
-                            'phase': f"L{phase+1}"
+                            'phase': f"L{phase+1}",
+                            "category": "load"
                         },
                         'fields': {
                             'value': float(emeter[self._dict_measurement_to_field[measurement]]),
@@ -440,6 +461,7 @@ class HuaweiPv:
                     'measurement': 'active_power',
                     'tags': {
                         'location': self.location,
+                        "category": "pv"
                     },
                     'fields': {
                         'value': float(data['current_power']),
