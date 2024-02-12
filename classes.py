@@ -472,6 +472,7 @@ class HuaweiPv:
                     'measurement': 'active_energy',
                     'tags': {
                         'location': self.location,
+                        "category": "pv"
                     },
                     'fields': {
                         'value': float(data['total_energy']),

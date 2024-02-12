@@ -4,7 +4,7 @@ import logging
 from pprint import pformat
 import datetime
 from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
+from influxdb_client.client.write_api import ASYNCHRONOUS
 
 FORMAT = '[%(levelname)s | %(asctime)-15s | %(filename)s | %(funcName)s | %(module)s] %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
@@ -61,49 +61,57 @@ client_influxdb = InfluxDBClient(
     token=os.getenv("INFLUXDB-TOKEN"),
     org=os.getenv("INFLUXDB-ORG")
 )    
-write_api = client_influxdb.write_api(write_options=SYNCHRONOUS)
+write_api = client_influxdb.write_api(write_options=ASYNCHRONOUS)
 
 if __name__ == "__main__":
     logging.info("Starting main script...")
     
-    now = datetime.datetime.now()
+    now = {}
+    for key, value in DICT_DATA_LOGGING_FREQUENCY_SECOND.items():
+        now[key] = datetime.datetime.now()
 
     while True:
         list_point = []
         
-        delta_time = datetime.datetime.now() - now
-        
         try:
+            delta_time = datetime.datetime.now() - now["co2signal"]
             if delta_time.seconds >= DICT_DATA_LOGGING_FREQUENCY_SECOND["co2signal"]:
                 for zone_code in LIST_CO2SIGNAL_ZONE_CODES:
                     point = obj_co2signal.get_point_influxdb(zone_code)
                     list_point.extend(point)
                     logging.debug(f"Point: {pformat(point)}")
+                    now["co2signal"] = datetime.datetime.now()
         except Exception as e:
             logging.error(f"Coulnd't get CO2Signal data: {e}")
             
         try:
+            delta_time = datetime.datetime.now() - now["shelly"]
             if delta_time.seconds >= DICT_DATA_LOGGING_FREQUENCY_SECOND["shelly"]:
                 for location, id in DICT_SHELLY_LOCATION_ID.items():
                     point = obj_shelly.get_point_influxdb(id, location)
                     list_point.extend(point)
                     logging.debug(f"Point: {pformat(point)}")
+                    now["shelly"] = datetime.datetime.now()
         except Exception as e:
             logging.error(f"Coulnd't get Shelly data: {e}")
                 
         try:
+            delta_time = datetime.datetime.now() - now["huawei_pv"]
             if delta_time.seconds >= DICT_DATA_LOGGING_FREQUENCY_SECOND["huawei_pv"]:
                 point = obj_huawei_pv.get_point_influxdb()
                 list_point.extend(point)
                 logging.debug(f"Point: {pformat(point)}")
+                now["huawei_pv"] = datetime.datetime.now()
         except Exception as e:
             logging.error(f"Coulnd't get Huawei PV data: {e}")
             
         try:
+            delta_time = datetime.datetime.now() - now["modbusrtuf4n200"]
             if delta_time.seconds >= DICT_DATA_LOGGING_FREQUENCY_SECOND["modbusrtuf4n200"]:
                 point = obj_modbusrtuf4n200.get_all_points_influxdb()
                 list_point.extend(point)
                 logging.debug(f"Point: {pformat(point)}")
+                now["modbusrtuf4n200"] = datetime.datetime.now()
         except Exception as e:
             logging.error(f"Coulnd't get Modbus RTU F4N200 data: {e}")
         
@@ -115,5 +123,3 @@ if __name__ == "__main__":
                 logging.info("Data written to InfluxDB")
             except Exception as e:
                 logging.error(f"Couldn't write data to InfluxDB: {e}")
-                
-            now = datetime.datetime.now()
